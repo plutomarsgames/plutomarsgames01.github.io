@@ -3,26 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PlutoMars Mines PRO</title>
+<title>PlutoMars Mines</title>
 
 <style>
 body {
-    margin: 0;
     font-family: Arial;
-    background: linear-gradient(135deg, #0d0d0d, #1a1a2e);
-    color: white;
     text-align: center;
-}
-
-h1 {
-    margin-top: 10px;
-}
-
-#stats {
-    display: flex;
-    justify-content: space-around;
-    margin: 10px;
-    font-size: 18px;
+    background: #0d0d0d;
+    color: white;
 }
 
 #game {
@@ -35,79 +23,93 @@ h1 {
 .cell {
     aspect-ratio: 1;
     background: #222;
-    border-radius: 10px;
-    font-size: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: 0.2s;
+    border-radius: 8px;
+    cursor: pointer;
 }
 
-.cell:hover {
-    transform: scale(1.05);
+.revealed { background: #444; }
+.mine { background: red; }
+
+#leaderboard {
+    list-style: none;
+    padding: 0;
 }
 
-.revealed {
-    background: #444;
-}
-
-.mine {
-    background: red;
-    animation: boom 0.3s;
-}
-
-@keyframes boom {
-    0% { transform: scale(0.5); }
-    100% { transform: scale(1); }
-}
-
-button {
-    padding: 10px 20px;
-    margin: 10px;
-    border: none;
-    border-radius: 10px;
-    background: #00adb5;
-    color: white;
-    font-size: 16px;
-}
-
-@media (max-width: 600px) {
-    #game {
-        grid-template-columns: repeat(6, 1fr);
-    }
+#leaderboard li {
+    background: #222;
+    margin: 5px;
+    padding: 10px;
+    border-radius: 6px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>💣 PlutoMars Mines PRO</h1>
+<h1>💣 PlutoMars Mines</h1>
 
-<div id="stats">
-    <div>⭐ Score: <span id="score">0</span></div>
-    <div>💰 Coins: <span id="coins">0</span></div>
+<div>
+    👤 Player: <span id="playerName"></span>
+    <button onclick="changeName()">Change</button>
 </div>
+
+<div>⭐ Score: <span id="score">0</span></div>
 
 <div id="game"></div>
 
-<button onclick="startGame()">🔄 Restart</button>
+<h2>🏆 Leaderboard</h2>
+<ul id="leaderboard"></ul>
 
-<!-- Sound Effects -->
-<audio id="clickSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
-<audio id="boomSound" src="https://assets.mixkit.co/active_storage/sfx/2770/2770-preview.mp3"></audio>
+<button onclick="startGame()">Restart</button>
+
+<!-- Firebase v8 (IMPORTANT) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-// SETTINGS
+// 🔥 STEP 2 — ADD YOUR FIREBASE CONFIG HERE
+const firebaseConfig = {
+  apiKey: "AIzaSyA-2dE8xOlParKAHEC_9TEsdYSIj5RS0pY",
+  authDomain: "plutomarsgames01.firebaseapp.com",
+  projectId: "plutomarsgames01",
+  storageBucket: "plutomarsgames01.firebasestorage.app",
+  messagingSenderId: "634530841410",
+  appId: "1:634530841410:web:3b8962f9e9a8b489567edb"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// 🎮 GAME SETTINGS
 const size = 8;
 const minesCount = 10;
 
 let board = [];
 let score = 0;
-let coins = localStorage.getItem("coins") || 0;
 
-document.getElementById("coins").innerText = coins;
+// 👤 PLAYER NAME (PERMANENT)
+let playerName = localStorage.getItem("playerName");
 
-// START GAME
+if (!playerName) {
+    playerName = prompt("Enter your name:");
+    localStorage.setItem("playerName", playerName);
+}
+
+document.getElementById("playerName").innerText = playerName;
+
+function changeName() {
+    let newName = prompt("Enter new name:");
+    if (newName) {
+        playerName = newName;
+        localStorage.setItem("playerName", playerName);
+        document.getElementById("playerName").innerText = playerName;
+    }
+}
+
+// 🎮 START GAME
 function startGame() {
     const game = document.getElementById("game");
     game.innerHTML = "";
@@ -115,22 +117,19 @@ function startGame() {
     score = 0;
     updateScore();
 
-    // Create board
     for (let i = 0; i < size * size; i++) {
         board.push({ mine: false, revealed: false });
     }
 
-    // Place mines
     let placed = 0;
     while (placed < minesCount) {
-        let index = Math.floor(Math.random() * board.length);
-        if (!board[index].mine) {
-            board[index].mine = true;
+        let i = Math.floor(Math.random() * board.length);
+        if (!board[i].mine) {
+            board[i].mine = true;
             placed++;
         }
     }
 
-    // Create UI
     board.forEach((cell, index) => {
         const div = document.createElement("div");
         div.classList.add("cell");
@@ -139,11 +138,9 @@ function startGame() {
     });
 }
 
-// REVEAL
+// 💣 REVEAL
 function revealCell(index, el) {
     if (board[index].revealed) return;
-
-    document.getElementById("clickSound").play();
 
     board[index].revealed = true;
     el.classList.add("revealed");
@@ -151,11 +148,11 @@ function revealCell(index, el) {
     if (board[index].mine) {
         el.classList.add("mine");
         el.innerText = "💣";
-        document.getElementById("boomSound").play();
 
         setTimeout(() => {
-            alert("💀 Game Over!");
+            alert("💀 Game Over");
             saveScore();
+            loadLeaderboard();
             startGame();
         }, 300);
 
@@ -164,12 +161,12 @@ function revealCell(index, el) {
         el.innerText = count || "";
 
         score += 10;
-        coins++;
         updateScore();
+        checkWin();
     }
 }
 
-// COUNT MINES
+// 🔢 COUNT
 function countMines(index) {
     const dirs = [-1,1,-size,size,-size-1,-size+1,size-1,size+1];
     let count = 0;
@@ -182,23 +179,57 @@ function countMines(index) {
     return count;
 }
 
-// UPDATE UI
-function updateScore() {
-    document.getElementById("score").innerText = score;
-    document.getElementById("coins").innerText = coins;
-    localStorage.setItem("coins", coins);
+// 🏆 WIN CHECK
+function checkWin() {
+    let safe = board.filter(c => !c.mine);
+    let revealed = safe.filter(c => c.revealed);
+
+    if (safe.length === revealed.length) {
+        alert("🏆 You Win!");
+        saveScore();
+        loadLeaderboard();
+        startGame();
+    }
 }
 
-// SAVE SCORE (Firebase ready placeholder)
+// 📊 SCORE
+function updateScore() {
+    document.getElementById("score").innerText = score;
+}
+
+// 💾 SAVE TO FIREBASE
 function saveScore() {
-    let best = localStorage.getItem("best") || 0;
-    if (score > best) {
-        localStorage.setItem("best", score);
-    }
+    db.collection("leaderboard").add({
+        name: playerName,
+        score: score,
+        time: new Date()
+    });
+}
+
+// 📥 LOAD LEADERBOARD
+function loadLeaderboard() {
+    const list = document.getElementById("leaderboard");
+    list.innerHTML = "Loading...";
+
+    db.collection("leaderboard")
+      .orderBy("score", "desc")
+      .limit(10)
+      .get()
+      .then(snapshot => {
+          list.innerHTML = "";
+          snapshot.forEach((doc, i) => {
+              let data = doc.data();
+              let li = document.createElement("li");
+              li.innerText = `${i+1}. ${data.name} - ${data.score}`;
+              list.appendChild(li);
+          });
+      });
 }
 
 // INIT
 startGame();
+loadLeaderboard();
+
 </script>
 
 </body>
