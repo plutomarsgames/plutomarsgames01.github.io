@@ -1,18 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>PlutoMars Mines Game</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlutoMars Mines PRO</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: linear-gradient(135deg, #0d0d0d, #1a1a2e);
+    color: white;
+    text-align: center;
+}
+
+h1 {
+    margin-top: 10px;
+}
+
+#stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 10px;
+    font-size: 18px;
+}
+
+#game {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 5px;
+    padding: 10px;
+}
+
+.cell {
+    aspect-ratio: 1;
+    background: #222;
+    border-radius: 10px;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 0.2s;
+}
+
+.cell:hover {
+    transform: scale(1.05);
+}
+
+.revealed {
+    background: #444;
+}
+
+.mine {
+    background: red;
+    animation: boom 0.3s;
+}
+
+@keyframes boom {
+    0% { transform: scale(0.5); }
+    100% { transform: scale(1); }
+}
+
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 10px;
+    background: #00adb5;
+    color: white;
+    font-size: 16px;
+}
+
+@media (max-width: 600px) {
+    #game {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+</style>
 </head>
+
 <body>
 
-<h1>💣 PlutoMars Mines</h1>
+<h1>💣 PlutoMars Mines PRO</h1>
+
+<div id="stats">
+    <div>⭐ Score: <span id="score">0</span></div>
+    <div>💰 Coins: <span id="coins">0</span></div>
+</div>
 
 <div id="game"></div>
 
-<button onclick="startGame()">Restart Game</button>
+<button onclick="startGame()">🔄 Restart</button>
 
-<script src="script.js"></script>
+<!-- Sound Effects -->
+<audio id="clickSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+<audio id="boomSound" src="https://assets.mixkit.co/active_storage/sfx/2770/2770-preview.mp3"></audio>
+
+<script>
+// SETTINGS
+const size = 8;
+const minesCount = 10;
+
+let board = [];
+let score = 0;
+let coins = localStorage.getItem("coins") || 0;
+
+document.getElementById("coins").innerText = coins;
+
+// START GAME
+function startGame() {
+    const game = document.getElementById("game");
+    game.innerHTML = "";
+    board = [];
+    score = 0;
+    updateScore();
+
+    // Create board
+    for (let i = 0; i < size * size; i++) {
+        board.push({ mine: false, revealed: false });
+    }
+
+    // Place mines
+    let placed = 0;
+    while (placed < minesCount) {
+        let index = Math.floor(Math.random() * board.length);
+        if (!board[index].mine) {
+            board[index].mine = true;
+            placed++;
+        }
+    }
+
+    // Create UI
+    board.forEach((cell, index) => {
+        const div = document.createElement("div");
+        div.classList.add("cell");
+        div.onclick = () => revealCell(index, div);
+        game.appendChild(div);
+    });
+}
+
+// REVEAL
+function revealCell(index, el) {
+    if (board[index].revealed) return;
+
+    document.getElementById("clickSound").play();
+
+    board[index].revealed = true;
+    el.classList.add("revealed");
+
+    if (board[index].mine) {
+        el.classList.add("mine");
+        el.innerText = "💣";
+        document.getElementById("boomSound").play();
+
+        setTimeout(() => {
+            alert("💀 Game Over!");
+            saveScore();
+            startGame();
+        }, 300);
+
+    } else {
+        let count = countMines(index);
+        el.innerText = count || "";
+
+        score += 10;
+        coins++;
+        updateScore();
+    }
+}
+
+// COUNT MINES
+function countMines(index) {
+    const dirs = [-1,1,-size,size,-size-1,-size+1,size-1,size+1];
+    let count = 0;
+
+    dirs.forEach(d => {
+        let i = index + d;
+        if (i >= 0 && i < board.length && board[i].mine) count++;
+    });
+
+    return count;
+}
+
+// UPDATE UI
+function updateScore() {
+    document.getElementById("score").innerText = score;
+    document.getElementById("coins").innerText = coins;
+    localStorage.setItem("coins", coins);
+}
+
+// SAVE SCORE (Firebase ready placeholder)
+function saveScore() {
+    let best = localStorage.getItem("best") || 0;
+    if (score > best) {
+        localStorage.setItem("best", score);
+    }
+}
+
+// INIT
+startGame();
+</script>
+
 </body>
 </html>
