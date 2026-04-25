@@ -1,0 +1,34 @@
+body {
+    text-align: center;
+    font-family: Arial;
+    background: #0d0d0d;
+    color: white;
+}
+
+#game {
+    display: grid;
+    grid-template-columns: repeat(8, 50px);
+    gap: 5px;
+    justify-content: center;
+    margin: 20px;
+}
+
+.cell {
+    width: 50px;
+    height: 50px;
+    background: #222;
+    border-radius: 5px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cell.revealed {
+    background: #555;
+}
+
+.cell.mine {
+    background: red;
+}
