@@ -15,9 +15,11 @@ body {
 
 #game {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 5px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
     padding: 10px;
+    max-width: 400px;
+    margin: auto;
 }
 
 .cell {
@@ -26,8 +28,14 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
+    font-size: 18px;
+    transition: 0.2s;
+}
+
+.cell:hover {
+    transform: scale(1.05);
 }
 
 .revealed { background: #444; }
@@ -36,6 +44,8 @@ body {
 #leaderboard {
     list-style: none;
     padding: 0;
+    max-width: 300px;
+    margin: auto;
 }
 
 #leaderboard li {
@@ -49,28 +59,28 @@ body {
 
 <body>
 
-<h1>💣 PlutoMars Mines</h1>
+<h1>💣 PlutoMars Mines (6x6)</h1>
 
 <div>
-    👤 Player: <span id="playerName"></span>
-    <button onclick="changeName()">Change</button>
+👤 Player: <span id="playerName"></span>
+<button onclick="changeName()">Change</button>
 </div>
 
-<div>⭐ Score: <span id="score">0</span></div>
+<h3>⭐ Score: <span id="score">0</span></h3>
 
 <div id="game"></div>
 
 <h2>🏆 Leaderboard</h2>
 <ul id="leaderboard"></ul>
 
-<button onclick="startGame()">Restart</button>
+<button onclick="startGame()">🔄 Restart</button>
 
-<!-- Firebase v8 (IMPORTANT) -->
+<!-- Firebase (v8 stable) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-// 🔥 STEP 2 — ADD YOUR FIREBASE CONFIG HERE
+// 🔥 PUT YOUR REAL FIREBASE CONFIG HERE
 const firebaseConfig = {
   apiKey: "AIzaSyA-2dE8xOlParKAHEC_9TEsdYSIj5RS0pY",
   authDomain: "plutomarsgames01.firebaseapp.com",
@@ -83,18 +93,19 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// 🎮 GAME SETTINGS
-const size = 8;
-const minesCount = 10;
+// GAME SETTINGS
+const size = 6;
+const minesCount = 6;
 
 let board = [];
 let score = 0;
 
-// 👤 PLAYER NAME (PERMANENT)
+// PLAYER NAME (SAVED PERMANENTLY)
 let playerName = localStorage.getItem("playerName");
 
 if (!playerName) {
     playerName = prompt("Enter your name:");
+    if (!playerName) playerName = "Player";
     localStorage.setItem("playerName", playerName);
 }
 
@@ -109,7 +120,7 @@ function changeName() {
     }
 }
 
-// 🎮 START GAME
+// START GAME
 function startGame() {
     const game = document.getElementById("game");
     game.innerHTML = "";
@@ -138,7 +149,7 @@ function startGame() {
     });
 }
 
-// 💣 REVEAL
+// REVEAL CELL
 function revealCell(index, el) {
     if (board[index].revealed) return;
 
@@ -166,7 +177,7 @@ function revealCell(index, el) {
     }
 }
 
-// 🔢 COUNT
+// COUNT MINES
 function countMines(index) {
     const dirs = [-1,1,-size,size,-size-1,-size+1,size-1,size+1];
     let count = 0;
@@ -179,7 +190,7 @@ function countMines(index) {
     return count;
 }
 
-// 🏆 WIN CHECK
+// WIN CHECK
 function checkWin() {
     let safe = board.filter(c => !c.mine);
     let revealed = safe.filter(c => c.revealed);
@@ -192,21 +203,26 @@ function checkWin() {
     }
 }
 
-// 📊 SCORE
+// UPDATE SCORE
 function updateScore() {
     document.getElementById("score").innerText = score;
 }
 
-// 💾 SAVE TO FIREBASE
+// SAVE SCORE TO FIREBASE
 function saveScore() {
     db.collection("leaderboard").add({
         name: playerName,
         score: score,
         time: new Date()
+    }).then(() => {
+        console.log("Saved!");
+    }).catch(err => {
+        console.error(err);
+        alert("Error saving score");
     });
 }
 
-// 📥 LOAD LEADERBOARD
+// LOAD LEADERBOARD
 function loadLeaderboard() {
     const list = document.getElementById("leaderboard");
     list.innerHTML = "Loading...";
@@ -229,7 +245,6 @@ function loadLeaderboard() {
 // INIT
 startGame();
 loadLeaderboard();
-
 </script>
 
 </body>
